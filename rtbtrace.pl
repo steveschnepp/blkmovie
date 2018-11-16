@@ -48,13 +48,14 @@ sub draw
 	my ($io_ops) = @_;
 
 	# 720p
-	my $columns = 128;
-	my $rows = 72;
+	my $pixel_size = 10;
+	my $columns = 1280 / $pixel_size;
+	my $rows = 720 / $pixel_size;
 	my $kb_per_pixels = $nb_sectors / ($columns * $rows) / 2;
 
 	use GD;
 
-	my $img = new GD::Image($columns*10, $rows*10);
+	my $img = new GD::Image($columns*$pixel_size, $rows*$pixel_size);
 	# allocate some colors
 	my $black = $img->colorAllocate(0,0,0); # First color, also background
 	my $white = $img->colorAllocate(255,255,255);
@@ -86,7 +87,7 @@ sub draw
 			my $offset_in_pixels = ($offset_in_kb + $len) / $kb_per_pixels;
 			my $x = int ($offset_in_pixels % $columns);
 			my $y = int ($offset_in_pixels / $columns);
-			$img->rectangle($x *10, $y *10, $x*10+10, $y*10+10, $color);
+			$img->rectangle($x *$pixel_size, $y *$pixel_size, $x*$pixel_size+$pixel_size, $y*$pixel_size+$pixel_size, $color);
 		}
 	}
 
@@ -111,6 +112,8 @@ sub draw
 }
 
 # haaa.. this should really be part of Perl :-)
+# And, it was benchmark worthy
+# https://www.perlmonks.org/?node_id=694849
 sub trim
 {
 	my $string = shift;
