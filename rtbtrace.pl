@@ -16,8 +16,7 @@ my $last_tstp = 0;
 
 
 my @io_ops = ();
-while(1) {
-	my $line = <>;
+while( my $line = <>) {
 	chomp($line);
 	# 8,0    3        1     0.000000000   697  G   W 223490 + 8 [kjournald]
 	my ($device, $cpu_id, $seqno, $tstp, $pid, $action, $mode, $offset, $dummy, $length, $detail) = split(/ +/, trim($line), 11);
@@ -48,13 +47,14 @@ sub draw
 {
 	my ($io_ops) = @_;
 
-	my $columns = 640;
-	my $rows = 480;
+	# 720p
+	my $columns = 128;
+	my $rows = 72;
 	my $kb_per_pixels = $nb_sectors / ($columns * $rows) / 2;
 
 	use GD;
 
-	my $img = new GD::Image($columns, $rows);
+	my $img = new GD::Image($columns*10, $rows*10);
 	# allocate some colors
 	my $black = $img->colorAllocate(0,0,0); # First color, also background
 	my $white = $img->colorAllocate(255,255,255);
@@ -70,18 +70,32 @@ sub draw
 	for my $io_op (@$io_ops) {
 		my ($offset_in_kb, $mode, $length) = @$io_op;
 
-		my $offset_in_pixels = $offset_in_kb / $kb_per_pixels;
-		my $x = int ($offset_in_pixels / $columns);
-		my $y = int ($offset_in_pixels % $columns);
 
 		# Green = read, Red = Write
-		my $color = ($mode =~ m/R/ ? $green : $red);
-		my $len = int($length / $kb_per_pixels) + 1;
+		my $color = $white;
+		if ($mode =~ m/R/) {
+			$color = $green;
+		} elsif ($mode =~ m/W/) {
+			$color = $red;
+		} elsif ($mode =~ m/D/) {
+			$color = $blue;
+		}
 
-		$img->setPixel($x, $y, $color);
+		my $len = int($length / $kb_per_pixels) + 1;
+		for my $i (0 .. ($len-1)) {
+			my $offset_in_pixels = ($offset_in_kb + $len) / $kb_per_pixels;
+			my $x = int ($offset_in_pixels % $columns);
+			my $y = int ($offset_in_pixels / $columns);
+			$img->rectangle($x *10, $y *10, $x*10+10, $y*10+10, $color);
+		}
 	}
 
 	# Open a file for writing 
+#	binmode STDOUT;
+#	print $img->gif();
+
+#	return;
+
 	my $filename = "t-" . sprintf("%05d", $fileno) . ".png";
 	print STDERR "write $filename";
 	open(PICTURE, "> $filename") or die("Cannot open file for writing");
